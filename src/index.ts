@@ -5,7 +5,15 @@ const app: Application = express();
 const PORT = process.env.PORT || 3000;
 
 // IP whitelist middleware
-const allowedIPs = (process.env.ALLOWED_IPS || '').split(',').filter(ip => ip.trim());
+const normalizeIP = (ip: string): string => {
+  // Remove IPv6-mapped IPv4 prefix (::ffff:)
+  return ip.replace(/^::ffff:/i, '');
+};
+
+const allowedIPs = (process.env.ALLOWED_IPS || '')
+  .split(',')
+  .map(ip => normalizeIP(ip.trim()))
+  .filter(ip => ip);
 
 const getClientIP = (req: Request): string | undefined => {
   // Check X-Forwarded-For header first (for proxy/load balancer)
@@ -13,10 +21,11 @@ const getClientIP = (req: Request): string | undefined => {
   if (forwardedFor) {
     // X-Forwarded-For can contain multiple IPs, take the first one
     const ips = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor;
-    return ips.split(',')[0].trim();
+    return normalizeIP(ips.split(',')[0].trim());
   }
   // Fallback to req.ip (works with trust proxy) or connection remote address
-  return req.ip || req.socket.remoteAddress || req.connection?.remoteAddress;
+  const ip = req.ip || req.socket.remoteAddress || req.connection?.remoteAddress;
+  return ip ? normalizeIP(ip) : undefined;
 };
 
 const ipWhitelist = (req: Request, res: Response, next: NextFunction) => {
