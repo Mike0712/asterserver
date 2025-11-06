@@ -28,7 +28,7 @@ addRouter.post('/', async (req: Request, res: Response) => {
       [id, id, id, 'from-internal', 'all', 'ulaw,alaw', 'no', 'yes', 'yes', 'yes', 'yes', 'yes', config.dtls_cert_file, config.dtls_private_key]
     );
 
-    res.status(200).json({ password });
+    res.status(200).json({ password, username: id });
   } catch (error) {
     console.error('Database error:', error instanceof Error ? error.message : error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
