@@ -1,5 +1,6 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import { addRouter } from './routes/add';
+import { ariRouter } from './routes/ariCommand';
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
@@ -49,6 +50,7 @@ app.use(express.json());
 app.use(ipWhitelist);
 
 app.use('/api/add', addRouter);
+app.use('/api/ari', ariRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
