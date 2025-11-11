@@ -92,6 +92,10 @@ export class AriClient {
     return (await response.json()) as T;
   }
 
+  getBridges() {
+    return this.request('/bridges');
+  }
+
   createBridge(options: {
     bridgeId?: string;
     type?: string;
@@ -115,6 +119,10 @@ export class AriClient {
 
   getBridge(bridgeId: string) {
     return this.request(`/bridges/${bridgeId}`);
+  }
+
+  getChannels() {
+    return this.request('/channels');
   }
 
   addChannelToBridge(options: {

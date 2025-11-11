@@ -19,6 +19,15 @@ const handleError = (res: Response, error: unknown) => {
   });
 };
 
+ariRouter.get('/bridges', async (req: Request, res: Response) => {
+  try {
+    const bridges = await ariClient.getBridges();
+    return res.status(200).json({ success: true, bridges });
+  } catch (error) {
+    return handleError(res, error);
+  }
+});
+
 ariRouter.post('/bridges', async (req: Request, res: Response) => {
   try {
     const { bridgeId, type, name, template } = req.body || {};
@@ -88,6 +97,15 @@ ariRouter.post('/bridges/:bridgeId/remove', async (req: Request, res: Response) 
     });
 
     return res.status(200).json({ success: true, result });
+  } catch (error) {
+    return handleError(res, error);
+  }
+});
+
+ariRouter.get('/channels', async (req: Request, res: Response) => {
+  try {
+    const channels = await ariClient.getChannels();
+    return res.status(200).json({ success: true, channels });
   } catch (error) {
     return handleError(res, error);
   }
