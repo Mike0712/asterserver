@@ -111,6 +111,15 @@ ariRouter.get('/channels', async (req: Request, res: Response) => {
   }
 });
 
+ariRouter.delete('/channels/:channelId', async (req: Request, res: Response) => {
+  try {
+    await ariClient.deleteChannel(req.params.channelId);
+    return res.status(204).send();
+  } catch (error) {
+    return handleError(res, error);
+  }
+});
+
 ariRouter.post('/channels/originate', async (req: Request, res: Response) => {
   try {
     const { endpoint, app, appArgs, channelId, callerId, timeout, variables } = req.body || {};

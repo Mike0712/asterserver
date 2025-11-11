@@ -140,6 +140,12 @@ export class AriClient {
     });
   }
 
+  deleteChannel(channelId: string) {
+    return this.request(`/channels/${channelId}`, {
+      method: 'DELETE',
+    });
+  }
+
   removeChannelFromBridge(options: { bridgeId: string; channel: string }) {
     const { bridgeId, channel } = options;
     return this.request(`/bridges/${bridgeId}/removeChannel`, {
