@@ -1,6 +1,8 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import { addRouter } from './routes/add';
 import { ariRouter } from './routes/ariCommand';
+import { ariWebSocket } from './utils/ariWebSocket';
+import { registerAllEventHandlers } from './handlers';
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
@@ -51,6 +53,27 @@ app.use(ipWhitelist);
 
 app.use('/api/add', addRouter);
 app.use('/api/ari', ariRouter);
+
+// Register ARI WebSocket event handlers
+registerAllEventHandlers();
+
+// Подключаемся к ARI WebSocket
+ariWebSocket.connect().catch((error) => {
+  console.error('[ARI WebSocket] Failed to connect:', error);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, closing ARI WebSocket...');
+  ariWebSocket.disconnect();
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, closing ARI WebSocket...');
+  ariWebSocket.disconnect();
+  process.exit(0);
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
