@@ -121,6 +121,16 @@ export class AriClient {
     return this.request(`/bridges/${bridgeId}`);
   }
 
+  playMohToBridge(options: {
+    bridgeId: string;
+    moh: string;
+  }) {
+    const { bridgeId, moh } = options;
+    return this.request(`/bridges/${bridgeId}/playMoh`, {
+      method: 'POST',
+    });
+  }
+
   getChannels() {
     return this.request('/channels');
   }
@@ -173,6 +183,12 @@ export class AriClient {
         ...rest,
         variables: variables ? JSON.stringify(variables) : undefined,
       },
+    });
+  }
+
+  answerChannel(channelId: string) {
+    return this.request(`/channels/${channelId}/answer`, {
+      method: 'POST',
     });
   }
 }

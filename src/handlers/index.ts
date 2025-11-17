@@ -6,6 +6,7 @@ import { registerBridgeCreatedHandler } from './bridgeCreatedHandler';
 import { registerBridgeDestroyedHandler } from './bridgeDestroyedHandler';
 import { registerChannelEnteredBridgeHandler } from './channelEnteredBridgeHandler';
 import { registerChannelLeftBridgeHandler } from './channelLeftBridgeHandler';
+import { registerChannelCreatedHandler } from './channelCreatedHandler';
 
 export const registerAllEventHandlers = () => {
   registerWildcardHandler();
@@ -16,5 +17,6 @@ export const registerAllEventHandlers = () => {
   registerBridgeDestroyedHandler();
   registerChannelEnteredBridgeHandler();
   registerChannelLeftBridgeHandler();
+  registerChannelCreatedHandler();
 };
 

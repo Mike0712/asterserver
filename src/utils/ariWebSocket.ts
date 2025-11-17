@@ -14,6 +14,28 @@ export interface AriEvent {
   [key: string]: unknown;
 }
 
+export interface AriChannel {
+  id: string;
+  name: string;
+  state: string;
+  accountcode?: string;
+  caller: {
+    name: string;
+    number: string;
+  };
+  connected: {
+    name: string;
+    number: string;
+  };
+  dialplan: {
+    context: string;
+    exten: string;
+    priority: number;
+  };
+  creationtime?: string;
+  language?: string;
+}
+
 type EventHandler = (event: AriEvent) => void | Promise<void>;
 
 const DEFAULT_BASE_URL = process.env.ARI_BASE_URL || 'http://127.0.0.1:8088/ari';
@@ -46,8 +68,7 @@ export class AriWebSocketClient {
 
   private buildWebSocketUrl(): string {
     const { baseUrl, username, password, app } = this.config;
-    const auth = Buffer.from(`${username}:${password}`).toString('base64');
-    return `${baseUrl}/ari/events?app=${encodeURIComponent(app)}&api_key=${username}:${password}`;
+    return `${baseUrl}/ari/events?app=${encodeURIComponent(app)}&api_key=${username}:${password}&subscribeAll=true`;
   }
 
   private handleMessage(data: WebSocket.Data): void {
@@ -114,7 +135,7 @@ export class AriWebSocketClient {
 
       this.isConnecting = true;
       const url = this.buildWebSocketUrl();
-
+console.log('url', url);
       console.log(`[ARI WebSocket] Connecting to ${url.replace(/:[^:@]+@/, ':****@')}...`);
 
       try {
