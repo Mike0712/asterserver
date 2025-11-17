@@ -126,7 +126,7 @@ export class AriClient {
     moh: string;
   }) {
     const { bridgeId, moh } = options;
-    return this.request(`/bridges/${bridgeId}/playMoh`, {
+    return this.request(`/bridges/${bridgeId}/moh?mohClass=${moh}`, {
       method: 'POST',
     });
   }
