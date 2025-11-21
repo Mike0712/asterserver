@@ -24,7 +24,6 @@ addRouter.post('/', async (req: Request, res: Response) => {
             allow,
             direct_media,
             webrtc,
-            use_webrtc,
             media_encryption,
             media_encryption_optimistic,
             dtls_cert_file,
@@ -38,7 +37,7 @@ addRouter.post('/', async (req: Request, res: Response) => {
             force_rport,
             rewrite_contact,
             media_use_received_transport
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
         [
           id,                      // id
@@ -50,7 +49,6 @@ addRouter.post('/', async (req: Request, res: Response) => {
           'opus,ulaw,alaw',        // allow
           'no',                    // direct_media
           'yes',                   // webrtc
-          'yes',                   // use_webrtc
           'dtls',                  // media_encryption
           'yes',                   // media_encryption_optimistic
           config.dtls_cert_file,   // dtls_cert_file
