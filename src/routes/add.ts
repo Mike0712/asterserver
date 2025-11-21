@@ -12,21 +12,75 @@ addRouter.post('/', async (req: Request, res: Response) => {
   }
 
   try {
+    if (config.ice_support) {
+
+    } else {
+      await pool.query(
+        `INSERT INTO ps_endpoints (
+            id,
+            transport,
+            aors,
+            auth,
+            context,
+            disallow,
+            allow,
+            direct_media,
+            webrtc,
+            use_webrtc,
+            media_encryption,
+            media_encryption_optimistic,
+            dtls_cert_file,
+            dtls_private_key,
+            dtls_verify,
+            dtls_setup,
+            use_avpf,
+            rtcp_mux,
+            ice_support,
+            rtp_symmetric,
+            force_rport,
+            rewrite_contact,
+            media_use_received_transport
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        [
+          id,                      // id
+          'transport-wss',         // transport
+          id,                      // aors
+          id,                      // auth
+          'from-internal',         // context
+          'all',                   // disallow
+          'opus,ulaw,alaw',        // allow
+          'no',                    // direct_media
+          'yes',                   // webrtc
+          'yes',                   // use_webrtc
+          'dtls',                  // media_encryption
+          'yes',                   // media_encryption_optimistic
+          config.dtls_cert_file,   // dtls_cert_file
+          config.dtls_private_key, // dtls_private_key
+          'fingerprint',           // dtls_verify
+          'actpass',               // dtls_setup
+          'yes',                   // use_avpf
+          'yes',                   // rtcp_mux
+          'yes',                   // ice_support
+          'yes',                   // rtp_symmetric
+          'yes',                   // force_rport
+          'yes',                   // rewrite_contact
+          'no'                     // media_use_received_transport
+        ]
+      );
+    }
     await pool.query(
       'INSERT INTO ps_aors (id, max_contacts, remove_existing) VALUES (?, ?, ?)',
       [id, maxContacts || 1, 'no']
-    );
-
+    );    
+    
     const password = crypto.randomBytes(16).toString('hex');
     await pool.query(
       'INSERT INTO ps_auths(id, auth_type, password, username) VALUES (?, ?, ?, ?)',
       [id, 'userpass', password, id]
     );
 
-    await pool.query(
-      'INSERT INTO ps_endpoints (id, aors, auth, context, disallow, allow, direct_media, webrtc, media_encryption_optimistic, force_rport, rtp_symmetric, rewrite_contact, dtls_cert_file, dtls_private_key) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [id, id, id, 'from-internal', 'all', 'ulaw,alaw', 'no', 'yes', 'yes', 'yes', 'yes', 'yes', config.dtls_cert_file, config.dtls_private_key]
-    );
+
 
     res.status(200).json({ password, username: id });
   } catch (error) {
