@@ -13,8 +13,6 @@ addRouter.post('/', async (req: Request, res: Response) => {
 
   try {
     if (config.ice_support) {
-
-    } else {
       await pool.query(
         `INSERT INTO ps_endpoints (
             id,
@@ -68,12 +66,14 @@ addRouter.post('/', async (req: Request, res: Response) => {
           'no'                     // media_use_received_transport
         ]
       );
+    } else {
+      await pool.query('INSERT INTO ps_endpoints (id, aors, auth, context, disallow, allow, direct_media, webrtc, media_encryption_optimistic, force_rport, rtp_symmetric, rewrite_contact, dtls_cert_file, dtls_private_key) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [id, id, id, 'from-internal', 'all', 'ulaw,alaw', 'no', 'yes', 'yes', 'yes', 'yes', 'yes', config.dtls_cert_file, config.dtls_private_key])
     }
     await pool.query(
       'INSERT INTO ps_aors (id, max_contacts, remove_existing) VALUES (?, ?, ?)',
       [id, maxContacts || 1, 'no']
-    );    
-    
+    );
+
     const password = crypto.randomBytes(16).toString('hex');
     await pool.query(
       'INSERT INTO ps_auths(id, auth_type, password, username) VALUES (?, ?, ?, ?)',
