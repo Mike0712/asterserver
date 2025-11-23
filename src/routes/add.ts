@@ -46,7 +46,7 @@ addRouter.post('/', async (req: Request, res: Response) => {
           id,                      // auth
           'from-internal',         // context
           'all',                   // disallow
-          'opus,ulaw,alaw',        // allow
+          'ulaw,alaw',             // allow
           'no',                    // direct_media
           'yes',                   // webrtc
           'dtls',                  // media_encryption
