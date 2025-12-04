@@ -147,4 +147,11 @@ ariRouter.post('/channels/originate', async (req: Request, res: Response) => {
   }
 });
 
-
+ariRouter.get('/ping', async (req: Request, res: Response) => {
+  try {
+    const response = await ariClient.ping();
+    return res.status(200).json({ success: true, response });
+  } catch (error) {
+    return handleError(res, error);
+  }
+});

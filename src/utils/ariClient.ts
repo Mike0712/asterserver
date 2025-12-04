@@ -191,6 +191,12 @@ export class AriClient {
       method: 'POST',
     });
   }
+
+  ping() {
+    return this.request('/ping', {
+      method: 'GET',
+    });
+  }
 }
 
 export const ariClient = new AriClient();
