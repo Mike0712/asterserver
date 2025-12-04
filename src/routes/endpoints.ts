@@ -114,5 +114,5 @@ endpointsRouter.get('/:id', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'ID is required' });
   }
   const endpoint = await pool.query('SELECT id, password FROM ps_auths WHERE id = ?', [id]);
-  return res.status(200).json(endpoint);
+  return res.status(200).json(endpoint[0]);
 });
