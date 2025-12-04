@@ -193,7 +193,7 @@ export class AriClient {
   }
 
   ping() {
-    return this.request('/ping', {
+    return this.request('/asterisk/ping', {
       method: 'GET',
     });
   }
