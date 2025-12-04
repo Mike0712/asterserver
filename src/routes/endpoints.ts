@@ -3,9 +3,9 @@ import { pool } from '../db/pool';
 import crypto from 'crypto';
 import { config } from '../config';
 
-export const addRouter = Router();
+export const endpointsRouter = Router();
 
-addRouter.post('/', async (req: Request, res: Response) => {
+endpointsRouter.post('/add', async (req: Request, res: Response) => {
   const { id, maxContacts } = req.body;
   if (!id) {
     return res.status(400).json({ error: 'ID is required' });
@@ -94,3 +94,25 @@ addRouter.post('/', async (req: Request, res: Response) => {
   }
 });
 
+endpointsRouter.post('/delete', async (req: Request, res: Response) => {
+  const { id } = req.body;
+  if (!id) {
+    return res.status(400).json({ error: 'ID is required' });
+  }
+});
+
+endpointsRouter.post('/update', async (req: Request, res: Response) => {
+  const { id, maxContacts } = req.body;
+  if (!id) {
+    return res.status(400).json({ error: 'ID is required' });
+  }
+});
+
+endpointsRouter.get('/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ error: 'ID is required' });
+  }
+  const endpoint = await pool.query('SELECT id, password FROM ps_auths WHERE id = ?', [id]);
+  return res.status(200).json(endpoint);
+});

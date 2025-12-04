@@ -1,5 +1,5 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
-import { addRouter } from './routes/add';
+import { endpointsRouter } from './routes/endpoints';
 import { ariRouter } from './routes/ariCommand';
 import { ariWebSocket } from './utils/ariWebSocket';
 import { registerAllEventHandlers } from './handlers';
@@ -51,7 +51,7 @@ app.set('trust proxy', true);
 app.use(express.json());
 app.use(ipWhitelist);
 
-app.use('/api/add', addRouter);
+app.use('/api/endpoints', endpointsRouter);
 app.use('/api/ari', ariRouter);
 
 // Register ARI WebSocket event handlers
