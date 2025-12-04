@@ -82,6 +82,12 @@ addRouter.post('/', async (req: Request, res: Response) => {
 
     res.status(200).json({ password, username: id });
   } catch (error) {
+    if (error instanceof Error && error.message.includes('Duplicate entry')) {
+      return res.status(409).json({
+        "error": "duplicate_entry",
+        "message": "Registration user already exists"
+      });
+    }
     console.error('Database error:', error instanceof Error ? error.message : error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return res.status(500).json({ error: 'Internal server error' });
