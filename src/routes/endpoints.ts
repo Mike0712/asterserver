@@ -113,6 +113,16 @@ endpointsRouter.get('/:id', async (req: Request, res: Response) => {
   if (!id) {
     return res.status(400).json({ error: 'ID is required' });
   }
-  const endpoint = await pool.query('SELECT id, password FROM ps_auths WHERE id = ?', [id]);
-  return res.status(200).json(endpoint[0]);
+  const result = await pool.query('SELECT id, password FROM ps_auths WHERE id = ?', [id]).then(result => result[0]).catch(error => {
+    return res.status(500).json({ error: 'Internal server error' });
+  });
+  if (!Array.isArray(result)) {
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+
+  if (result.length === 0) {
+    return res.status(404).json({ error: 'Endpoint not found' });
+  }
+
+  return res.status(200).json(result[0]);
 });
