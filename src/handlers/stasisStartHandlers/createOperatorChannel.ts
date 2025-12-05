@@ -17,10 +17,6 @@ export const createOperatorChannel = async (channel: AriChannel, args: Record<st
                     channel: channel.id,
                     role: 'participant',
                 });
-                await ariClient.playMohToBridge({
-                    bridgeId: args.bridgeId,
-                    moh: 'default',
-                });
             } catch (error) {
                 console.error('[ARI] Failed to add channel to bridge:', error);
                 return;
