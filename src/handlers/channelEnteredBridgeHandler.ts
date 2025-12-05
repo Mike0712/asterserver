@@ -31,7 +31,7 @@ export const registerChannelEnteredBridgeHandler = () => {
       const caller = event.channel?.caller?.number || event.channel?.name;
 
       await sendTelephonyEvent({
-        event: 'bridge_join',
+        event: 'participant_joined',
         bridge_id: event.bridge?.id,
         uniqueid: event.channel?.id,
         caller,

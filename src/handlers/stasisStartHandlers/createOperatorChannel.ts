@@ -26,7 +26,7 @@ export const createOperatorChannel = async (channel: AriChannel, args: Record<st
         if (joinExtension.startsWith('010')) {
           try {
             await sendTelephonyEvent({
-              event: 'bridge_join',
+              event: 'participant_joined',
               uniqueid: channel.id,
               caller: channel.caller?.number || channel.name,
               endpoint: channel.name || joinExtension,
