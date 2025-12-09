@@ -50,7 +50,7 @@ ariRouter.post('/bridges', async (req: Request, res: Response) => {
 ariRouter.get('/bridges/:bridgeId', async (req: Request, res: Response) => {
   try {
     const bridge = await ariClient.getBridge(req.params.bridgeId);
-    return res.status(200).json({ success: true, bridge });
+    return res.status(res.statusCode).json({ success: true, bridge });
   } catch (error) {
     return handleError(res, error);
   }
