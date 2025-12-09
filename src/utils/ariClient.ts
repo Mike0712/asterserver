@@ -21,6 +21,12 @@ const createAuthHeader = (username: string, password: string): string =>
 const ensureLeadingSlash = (path: string): string =>
   path.startsWith('/') ? path : `/${path}`;
 
+export class AriError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+
 export class AriClient {
   private readonly config: AriClientConfig;
   private readonly authHeader: string;
@@ -79,9 +85,7 @@ export class AriClient {
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(
-        `ARI request failed: ${response.status} ${response.statusText} – ${text}`,
-      );
+      throw new AriError(response.status, text || response.statusText);
     }
 
     if (response.status === 204) {

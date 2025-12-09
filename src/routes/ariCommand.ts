@@ -1,13 +1,13 @@
 import { Router, Request, Response } from 'express';
-import { ariClient } from '../utils/ariClient';
+import { ariClient, AriError } from '../utils/ariClient';
 
 export const ariRouter = Router();
 
 const handleError = (res: Response, error: unknown) => {
   console.error('[ARI] Error:', error);
 
-  if (error instanceof Error) {
-    return res.status(res.statusCode || 502).json({
+  if (error instanceof AriError) {
+    return res.status(error.status || 502).json({
       success: false,
       error: error.message,
     });
