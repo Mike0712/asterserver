@@ -22,7 +22,7 @@ const handleError = (res: Response, error: unknown) => {
 ariRouter.get('/bridges', async (req: Request, res: Response) => {
   try {
     const bridges = await ariClient.getBridges();
-    return res.status(200).json({ success: true, bridges });
+    return res.status(res.statusCode).json({ success: true, bridges });
   } catch (error) {
     return handleError(res, error);
   }
