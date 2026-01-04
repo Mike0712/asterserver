@@ -95,7 +95,7 @@ endpointsRouter.post('', async (req: Request, res: Response) => {
 });
 
 endpointsRouter.delete('/:id', async (req: Request, res: Response) => {
-  const { id } = req.body;
+  const { id } = req.params;
   if (!id) {
     return res.status(400).json({ error: 'ID is required' });
   }
