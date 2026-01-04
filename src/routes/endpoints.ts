@@ -5,7 +5,7 @@ import { config } from '../config';
 
 export const endpointsRouter = Router();
 
-endpointsRouter.post('/add', async (req: Request, res: Response) => {
+endpointsRouter.post('', async (req: Request, res: Response) => {
   const { id, maxContacts } = req.body;
   if (!id) {
     return res.status(400).json({ error: 'ID is required' });
@@ -94,14 +94,14 @@ endpointsRouter.post('/add', async (req: Request, res: Response) => {
   }
 });
 
-endpointsRouter.post('/delete', async (req: Request, res: Response) => {
+endpointsRouter.delete('/:id', async (req: Request, res: Response) => {
   const { id } = req.body;
   if (!id) {
     return res.status(400).json({ error: 'ID is required' });
   }
 });
 
-endpointsRouter.post('/update', async (req: Request, res: Response) => {
+endpointsRouter.put('/:id', async (req: Request, res: Response) => {
   const { id, maxContacts } = req.body;
   if (!id) {
     return res.status(400).json({ error: 'ID is required' });
