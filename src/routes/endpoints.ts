@@ -99,6 +99,10 @@ endpointsRouter.delete('/:id', async (req: Request, res: Response) => {
   if (!id) {
     return res.status(400).json({ error: 'ID is required' });
   }
+  await pool.query('DELETE FROM ps_endpoints WHERE id = ?', [id]);
+  await pool.query('DELETE FROM ps_aors WHERE id = ?', [id]);
+  await pool.query('DELETE FROM ps_auths WHERE id = ?', [id]);
+  return res.status(200).json({ message: 'Endpoint deleted successfully' });
 });
 
 endpointsRouter.put('/:id', async (req: Request, res: Response) => {
