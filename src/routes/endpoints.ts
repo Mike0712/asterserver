@@ -69,7 +69,7 @@ endpointsRouter.post('', async (req: Request, res: Response) => {
     }
     await pool.query(
       'INSERT INTO ps_aors (id, max_contacts, remove_existing) VALUES (?, ?, ?)',
-      [id, maxContacts || 1, 'no']
+      [id, maxContacts || 3, 'no']
     );
 
     const password = crypto.randomBytes(16).toString('hex');
