@@ -196,6 +196,31 @@ export class AriClient {
     });
   }
 
+  getEndpoint(tech: string, resource: string) {
+    return this.request<{
+      technology: string;
+      resource: string;
+      state: 'online' | 'offline' | 'unknown';
+      channel_ids: string[];
+    }>(`/endpoints/${tech}/${resource}`);
+  }
+
+  playMedia(channelId: string, media: string) {
+    return this.request<{ id: string; media_uri: string; state: string }>(
+      `/channels/${channelId}/play`,
+      {
+        method: 'POST',
+        query: { media },
+      },
+    );
+  }
+
+  stopPlayback(playbackId: string) {
+    return this.request(`/playbacks/${playbackId}`, {
+      method: 'DELETE',
+    });
+  }
+
   ping() {
     return this.request('/asterisk/ping', {
       method: 'GET',
