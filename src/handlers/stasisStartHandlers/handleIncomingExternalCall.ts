@@ -15,6 +15,24 @@ const POLL_INTERVAL_MS = 1000;
 const HOLD_TIMEOUT_MS = 30000;
 const MIN_ORIGINATE_TIMEOUT_SEC = 5;
 
+// fetch() only rejects on network-level failures (DNS, connection refused,
+// etc.) — a 4xx/5xx response resolves normally and was previously silently
+// ignored, hiding exactly the failures that matter here (Firebase
+// misconfigured, no push token for this user, FCM rejected the token...).
+async function pingWithLogging(label: string, url: string): Promise<void> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      console.error(`[ARI] ${label} returned ${response.status}:`, body);
+      return;
+    }
+    console.log(`[ARI] ${label} succeeded (${response.status})`);
+  } catch (error) {
+    console.error(`[ARI] ${label} failed:`, error);
+  }
+}
+
 async function sendWakeSignals(userId: string, from: string): Promise<void> {
   const wakeUrl = process.env.TELEPHONY_WAKE_PUSH_URL;
   const notifyUrl = process.env.TELEPHONY_NOTIFY_URL;
@@ -24,12 +42,8 @@ async function sendWakeSignals(userId: string, from: string): Promise<void> {
   const query = `user_id=${encodeURIComponent(userId)}&from=${encodeURIComponent(from)}`;
 
   await Promise.all([
-    wakeUrl
-      ? fetch(`${wakeUrl}?${query}`).catch((error) => console.error('[ARI] wake-push failed:', error))
-      : Promise.resolve(),
-    notifyUrl
-      ? fetch(`${notifyUrl}?${query}`).catch((error) => console.error('[ARI] notify failed:', error))
-      : Promise.resolve(),
+    wakeUrl ? pingWithLogging('wake-push', `${wakeUrl}?${query}`) : Promise.resolve(),
+    notifyUrl ? pingWithLogging('notify', `${notifyUrl}?${query}`) : Promise.resolve(),
   ]);
 }
 
