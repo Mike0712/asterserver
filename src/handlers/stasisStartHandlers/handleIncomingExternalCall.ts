@@ -17,6 +17,9 @@ const MIN_ORIGINATE_TIMEOUT_SEC = 5;
 async function sendWakeSignals(userId: string, from: string): Promise<void> {
   const wakeUrl = process.env.TELEPHONY_WAKE_PUSH_URL;
   const notifyUrl = process.env.TELEPHONY_NOTIFY_URL;
+  if (!wakeUrl && !notifyUrl) {
+    console.warn('[ARI] TELEPHONY_WAKE_PUSH_URL/TELEPHONY_NOTIFY_URL not set — offline callee will not be woken, call will just poll until hold timeout');
+  }
   const query = `user_id=${encodeURIComponent(userId)}&from=${encodeURIComponent(from)}`;
 
   await Promise.all([
@@ -73,7 +76,12 @@ function pollUntilOnline(bridgeId: string, sipUser: string, deadlineAt: number):
   pending.pollHandle = setInterval(async () => {
     if (resolved || Date.now() >= deadlineAt) return; // the hold-timeout will abort separately
 
-    const endpoint = await ariClient.getEndpoint('PJSIP', sipUser).catch(() => null);
+    const endpoint = await ariClient
+      .getEndpoint('PJSIP', sipUser)
+      .catch((error) => {
+        console.error('[ARI] getEndpoint poll failed for', sipUser, error);
+        return null;
+      });
     if (resolved) return;
 
     const current = incomingCallState.get(bridgeId);
@@ -125,16 +133,23 @@ export const handleIncomingExternalCall = async (
 
   const deadlineAt = Date.now() + HOLD_TIMEOUT_MS;
   pending.timeoutHandle = setTimeout(() => {
-    console.warn('[ARI] incoming call: hold timeout reached, aborting', bridge.id);
+    console.warn('[ARI] incoming call: hold timeout reached, aborting', bridge.id, 'sip_user:', sipUser);
     abortCall(bridge.id);
   }, HOLD_TIMEOUT_MS);
 
-  const endpoint = await ariClient.getEndpoint('PJSIP', sipUser).catch(() => null);
+  const endpoint = await ariClient
+    .getEndpoint('PJSIP', sipUser)
+    .catch((error) => {
+      console.error('[ARI] getEndpoint failed for', sipUser, error);
+      return null;
+    });
 
   if (endpoint?.state === 'online') {
     await originateToEndpoint(bridge.id, sipUser, deadlineAt);
     return;
   }
+
+  console.log('[ARI] endpoint not immediately online, waking + polling:', sipUser, 'state:', endpoint?.state ?? 'lookup failed');
 
   if (userId) {
     sendWakeSignals(userId, from).catch(() => undefined);
