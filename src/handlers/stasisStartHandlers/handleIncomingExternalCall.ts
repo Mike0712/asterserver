@@ -50,7 +50,7 @@ async function abortCall(bridgeId: string): Promise<void> {
 // `deadlineAt` is the single hold-timeout for the whole call (set once in
 // handleIncomingExternalCall) — the originate's own ring timeout is however
 // much of that budget is left, not a fresh 30s on top of it.
-async function originateToEndpoint(bridgeId: string, sipUser: string, deadlineAt: number): Promise<void> {
+async function originateToEndpoint(bridgeId: string, sipUser: string, deadlineAt: number, from: string): Promise<void> {
   const remainingSec = Math.max(MIN_ORIGINATE_TIMEOUT_SEC, Math.round((deadlineAt - Date.now()) / 1000));
 
   await ariClient.originateChannel({
@@ -58,13 +58,17 @@ async function originateToEndpoint(bridgeId: string, sipUser: string, deadlineAt
     app: ARI_APP,
     appArgs: `callType:::bridgeIncomingCall,bridgeId:::${bridgeId}`,
     timeout: remainingSec,
+    // Without this the new leg to the callee's endpoint carries no caller
+    // identity, so its SIP client shows "Anonymous" instead of the actual
+    // calling number.
+    callerId: from,
   });
   // No separate timeout here on purpose — the single HOLD_TIMEOUT_MS timer
   // started in handleIncomingExternalCall already covers "callee doesn't
   // answer in time" and will abort the whole call, bridge included.
 }
 
-function pollUntilOnline(bridgeId: string, sipUser: string, deadlineAt: number): void {
+function pollUntilOnline(bridgeId: string, sipUser: string, deadlineAt: number, from: string): void {
   // Guards against two overlapping ticks both deciding to act (setInterval
   // doesn't wait for the previous async callback to finish) — the first tick
   // to reach this synchronous check wins, everything after it is a no-op.
@@ -94,7 +98,7 @@ function pollUntilOnline(bridgeId: string, sipUser: string, deadlineAt: number):
       resolved = true;
       if (current.pollHandle) clearInterval(current.pollHandle);
       current.pollHandle = null;
-      await originateToEndpoint(bridgeId, sipUser, deadlineAt);
+      await originateToEndpoint(bridgeId, sipUser, deadlineAt, from);
     }
   }, POLL_INTERVAL_MS);
 }
@@ -145,7 +149,7 @@ export const handleIncomingExternalCall = async (
     });
 
   if (endpoint?.state === 'online') {
-    await originateToEndpoint(bridge.id, sipUser, deadlineAt);
+    await originateToEndpoint(bridge.id, sipUser, deadlineAt, from);
     return;
   }
 
@@ -155,5 +159,5 @@ export const handleIncomingExternalCall = async (
     sendWakeSignals(userId, from).catch(() => undefined);
   }
 
-  pollUntilOnline(bridge.id, sipUser, deadlineAt);
+  pollUntilOnline(bridge.id, sipUser, deadlineAt, from);
 };
