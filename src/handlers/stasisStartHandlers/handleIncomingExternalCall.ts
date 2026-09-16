@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { ariClient } from '../../utils/ariClient';
 import { AriChannel } from '../../utils/ariWebSocket';
 import { incomingCallState, PendingIncomingCall } from './incomingCallState';
@@ -50,10 +51,21 @@ async function abortCall(bridgeId: string): Promise<void> {
 // `deadlineAt` is the single hold-timeout for the whole call (set once in
 // handleIncomingExternalCall) — the originate's own ring timeout is however
 // much of that budget is left, not a fresh 30s on top of it.
-async function originateToEndpoint(bridgeId: string, sipUser: string, deadlineAt: number, from: string): Promise<void> {
+async function originateToEndpoint(
+  bridgeId: string,
+  sipUser: string,
+  deadlineAt: number,
+  from: string,
+  sessionId: string,
+): Promise<void> {
   const remainingSec = Math.max(MIN_ORIGINATE_TIMEOUT_SEC, Math.round((deadlineAt - Date.now()) / 1000));
 
   await ariClient.originateChannel({
+    // Named after the same session id as the bridge (bridge_<id>) instead of
+    // letting Asterisk pick a PJSIP-derived id — lets channelLeftBridgeHandler
+    // and anyone reading ARI/Asterisk logs tell which call a leg belongs to
+    // from the id/name alone, no lookup needed.
+    channelId: `callee_${sessionId}`,
     endpoint: `PJSIP/${sipUser}`,
     app: ARI_APP,
     appArgs: `callType:::bridgeIncomingCall,bridgeId:::${bridgeId}`,
@@ -68,7 +80,7 @@ async function originateToEndpoint(bridgeId: string, sipUser: string, deadlineAt
   // answer in time" and will abort the whole call, bridge included.
 }
 
-function pollUntilOnline(bridgeId: string, sipUser: string, deadlineAt: number, from: string): void {
+function pollUntilOnline(bridgeId: string, sipUser: string, deadlineAt: number, from: string, sessionId: string): void {
   // Guards against two overlapping ticks both deciding to act (setInterval
   // doesn't wait for the previous async callback to finish) — the first tick
   // to reach this synchronous check wins, everything after it is a no-op.
@@ -98,7 +110,7 @@ function pollUntilOnline(bridgeId: string, sipUser: string, deadlineAt: number, 
       resolved = true;
       if (current.pollHandle) clearInterval(current.pollHandle);
       current.pollHandle = null;
-      await originateToEndpoint(bridgeId, sipUser, deadlineAt, from);
+      await originateToEndpoint(bridgeId, sipUser, deadlineAt, from, sessionId);
     }
   }, POLL_INTERVAL_MS);
 }
@@ -119,7 +131,15 @@ export const handleIncomingExternalCall = async (
     return;
   }
 
-  const bridge = (await ariClient.createBridge({ type: 'mixing' })) as { id: string };
+  // Shared id for this call session — threaded into the bridge id
+  // (bridge_<id>) and the originated callee channel id (callee_<id>) below.
+  // The inbound caller channel keeps its own PJSIP-assigned id (Asterisk
+  // doesn't let us rename an existing channel), so it isn't renamed to
+  // caller_<id> — its membership in bridge_<id> is what ties it to the
+  // session; see channelLeftBridgeHandler.ts, which uses exactly that (no
+  // separate cache) to hang up the other leg when one side leaves.
+  const sessionId = randomUUID();
+  const bridge = (await ariClient.createBridge({ type: 'mixing', bridgeId: `bridge_${sessionId}` })) as { id: string };
   await ariClient.addChannelToBridge({ bridgeId: bridge.id, channel: channel.id, role: 'participant' });
 
   const playback = (await ariClient.playMedia(channel.id, 'tone:ring;tonezone=ru')) as { id: string };
@@ -149,7 +169,7 @@ export const handleIncomingExternalCall = async (
     });
 
   if (endpoint?.state === 'online') {
-    await originateToEndpoint(bridge.id, sipUser, deadlineAt, from);
+    await originateToEndpoint(bridge.id, sipUser, deadlineAt, from, sessionId);
     return;
   }
 
@@ -159,5 +179,5 @@ export const handleIncomingExternalCall = async (
     sendWakeSignals(userId, from).catch(() => undefined);
   }
 
-  pollUntilOnline(bridge.id, sipUser, deadlineAt, from);
+  pollUntilOnline(bridge.id, sipUser, deadlineAt, from, sessionId);
 };
