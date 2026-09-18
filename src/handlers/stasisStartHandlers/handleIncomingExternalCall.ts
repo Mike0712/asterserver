@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { ariClient } from '../../utils/ariClient';
 import { AriChannel } from '../../utils/ariWebSocket';
+import { sendTelephonyEvent } from '../../utils/telephonyEventSender';
 import { incomingCallState, PendingIncomingCall } from './incomingCallState';
 
 const ARI_APP = process.env.ARI_APP || 'asterisk-app';
@@ -155,6 +156,16 @@ export const handleIncomingExternalCall = async (
   const sessionId = randomUUID();
   const bridge = (await ariClient.createBridge({ type: 'mixing', bridgeId: `bridge_${sessionId}` })) as { id: string };
   await ariClient.addChannelToBridge({ bridgeId: bridge.id, channel: channel.id, role: 'participant' });
+
+  // Best-effort call-history entry — reporting failure must never block the
+  // actual call, same treatment sendTelephonyEvent gets everywhere else.
+  sendTelephonyEvent({
+    event: 'incoming_call_started',
+    bridge_id: bridge.id,
+    caller: from,
+    endpoint: sipUser,
+    metadata: { user_id: userId },
+  }).catch((error) => console.error('[ARI] Failed to send incoming_call_started event:', error));
 
   const playback = (await ariClient.playMedia(channel.id, 'tone:ring;tonezone=ru')) as { id: string };
 
