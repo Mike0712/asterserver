@@ -130,7 +130,7 @@ function pollUntilOnline(bridgeId: string, sipUser: string, deadlineAt: number, 
   }, POLL_INTERVAL_MS);
 }
 
-// Entry point for `Stasis(app, callType:::incomingExternalCall, sip_user:::..., user_id:::..., from:::...)`.
+// Entry point for `Stasis(app, callType:::incomingExternalCall, sip_user:::..., user_id:::..., from:::..., [to:::...])`.
 // The channel is already answered (see stasisStartHandler.ts) — this, plus
 // the ring-tone playback below, is what replaces the old dialplan
 // Answer()+Playtones()+Wait()-loop+Dial() sequence.
@@ -141,6 +141,10 @@ export const handleIncomingExternalCall = async (
   const sipUser = args.sip_user;
   const userId = args.user_id;
   const from = args.from || channel.caller?.number || 'Unknown';
+  // The number that was dialed (our DID). Prefer an explicit `to:::${EXTEN}`
+  // Stasis arg; fall back to the channel's dialplan exten, which is the DID
+  // when the inbound context matches on it.
+  const called = args.to || channel.dialplan?.exten || null;
 
   if (!channel || !sipUser) {
     return;
@@ -163,6 +167,7 @@ export const handleIncomingExternalCall = async (
     event: 'incoming_call_started',
     bridge_id: bridge.id,
     caller: from,
+    called,
     endpoint: sipUser,
     metadata: { user_id: userId },
   }).catch((error) => console.error('[ARI] Failed to send incoming_call_started event:', error));

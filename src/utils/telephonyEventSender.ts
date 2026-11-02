@@ -3,6 +3,8 @@ interface TelephonyEventPayload {
   bridge_id?: string;
   uniqueid?: string;
   caller?: string;
+  // Number that was dialed (our DID) — incoming_call_started only.
+  called?: string | null;
   endpoint?: string;
   join_extension?: string;
   status?: 'pending' | 'dialing' | 'joined' | 'failed' | 'left';
