@@ -9,6 +9,7 @@ import { registerChannelLeftBridgeHandler } from './channelLeftBridgeHandler';
 import { registerChannelCreatedHandler } from './channelCreatedHandler';
 import { registerChannelDestroyedHandler } from './channelDestroyedHandler';
 import { registerChannelHangupRequestHandler } from './channelHangupRequestHandler';
+import { registerOutgoingCallTracker } from './outgoingCallTracker';
 
 export const registerAllEventHandlers = () => {
   registerWildcardHandler();
@@ -22,5 +23,6 @@ export const registerAllEventHandlers = () => {
   registerChannelCreatedHandler();
   registerChannelDestroyedHandler();
   registerChannelHangupRequestHandler();
+  registerOutgoingCallTracker();
 };
 
