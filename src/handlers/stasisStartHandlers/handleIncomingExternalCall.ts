@@ -95,6 +95,23 @@ async function originateToEndpoint(
   // answer in time" and will abort the whole call, bridge included.
 }
 
+// The callee leg couldn't be created — release the caller now instead of
+// letting them listen to the ring tone until the hold timeout.
+async function originateOrAbort(
+  bridgeId: string,
+  sipUser: string,
+  deadlineAt: number,
+  from: string,
+  sessionId: string,
+): Promise<void> {
+  try {
+    await originateToEndpoint(bridgeId, sipUser, deadlineAt, from, sessionId);
+  } catch (error) {
+    console.error('[ARI] originate to', sipUser, 'failed, aborting incoming call', bridgeId, error);
+    await abortCall(bridgeId);
+  }
+}
+
 function pollUntilOnline(bridgeId: string, sipUser: string, deadlineAt: number, from: string, sessionId: string): void {
   // Guards against two overlapping ticks both deciding to act (setInterval
   // doesn't wait for the previous async callback to finish) — the first tick
@@ -125,7 +142,9 @@ function pollUntilOnline(bridgeId: string, sipUser: string, deadlineAt: number, 
       resolved = true;
       if (current.pollHandle) clearInterval(current.pollHandle);
       current.pollHandle = null;
-      await originateToEndpoint(bridgeId, sipUser, deadlineAt, from, sessionId);
+      // Runs inside setInterval — nothing upstream would catch a rejection
+      // (and an unhandled one crashes the process).
+      await originateOrAbort(bridgeId, sipUser, deadlineAt, from, sessionId);
     }
   }, POLL_INTERVAL_MS);
 }
@@ -199,7 +218,7 @@ export const handleIncomingExternalCall = async (
     });
 
   if (endpoint?.state === 'online') {
-    await originateToEndpoint(bridge.id, sipUser, deadlineAt, from, sessionId);
+    await originateOrAbort(bridge.id, sipUser, deadlineAt, from, sessionId);
     return;
   }
 

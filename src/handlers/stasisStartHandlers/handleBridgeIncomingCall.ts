@@ -29,5 +29,14 @@ export const handleBridgeIncomingCall = async (
     await ariClient.stopPlayback(pending.playbackId).catch(() => undefined);
   }
 
-  await ariClient.addChannelToBridge({ bridgeId, channel: channel.id, role: 'participant' });
+  try {
+    await ariClient.addChannelToBridge({ bridgeId, channel: channel.id, role: 'participant' });
+  } catch (error) {
+    // Ring tone is already stopped and the hold timer cleared above — without
+    // this the caller would sit in a silent bridge until they hang up.
+    console.error('[ARI] callee leg failed to join', bridgeId, '— releasing caller', error);
+    await ariClient.deleteChannel(pending.originalChannelId).catch(() => undefined);
+    await ariClient.deleteBridge(bridgeId).catch(() => undefined);
+    throw error; // stasisStartHandler hangs up the callee leg
+  }
 };

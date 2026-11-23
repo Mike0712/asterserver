@@ -48,8 +48,10 @@ export class AriWebSocketClient {
   private config: AriWebSocketConfig;
   private reconnectInterval: NodeJS.Timeout | null = null;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 10;
-  private reconnectDelay = 5000; // 5 seconds
+  // Never give up: after an Asterisk restart / longer outage events must come
+  // back on their own. Backoff doubles from reconnectDelay up to maxReconnectDelay.
+  private reconnectDelay = 1000;
+  private maxReconnectDelay = 30000;
   private eventHandlers: Map<string, Set<EventHandler>> = new Map();
   private isConnecting = false;
   private shouldReconnect = true;
@@ -71,36 +73,38 @@ export class AriWebSocketClient {
     return `${baseUrl}/ari/events?app=${encodeURIComponent(app)}&api_key=${username}:${password}&subscribeAll=true`;
   }
 
-  private handleMessage(data: WebSocket.Data): void {
+  /**
+   * Runs a handler and contains both sync throws and async rejections —
+   * handlers are async, and an escaped rejection kills the whole process.
+   */
+  private runHandler(handler: EventHandler, event: AriEvent, label: string): void {
     try {
-      const event: AriEvent = JSON.parse(data.toString());
-      
-      // Вызываем обработчики для конкретного типа события
-      const handlers = this.eventHandlers.get(event.type);
-      if (handlers) {
-        handlers.forEach((handler) => {
-          try {
-            handler(event);
-          } catch (error) {
-            console.error(`[ARI WebSocket] Error in event handler for ${event.type}:`, error);
-          }
-        });
-      }
+      Promise.resolve(handler(event)).catch((error) => {
+        console.error(`[ARI WebSocket] Error in ${label}:`, error);
+      });
+    } catch (error) {
+      console.error(`[ARI WebSocket] Error in ${label}:`, error);
+    }
+  }
 
-      // Вызываем обработчики для всех событий ('*')
-      const allHandlers = this.eventHandlers.get('*');
-      if (allHandlers) {
-        allHandlers.forEach((handler) => {
-          try {
-            handler(event);
-          } catch (error) {
-            console.error(`[ARI WebSocket] Error in wildcard event handler:`, error);
-          }
-        });
-      }
+  private handleMessage(data: WebSocket.Data): void {
+    let event: AriEvent;
+    try {
+      event = JSON.parse(data.toString());
     } catch (error) {
       console.error('[ARI WebSocket] Failed to parse event:', error);
+      return;
     }
+
+    // Вызываем обработчики для конкретного типа события
+    this.eventHandlers.get(event.type)?.forEach((handler) =>
+      this.runHandler(handler, event, `event handler for ${event.type}`),
+    );
+
+    // Вызываем обработчики для всех событий ('*')
+    this.eventHandlers.get('*')?.forEach((handler) =>
+      this.runHandler(handler, event, 'wildcard event handler'),
+    );
   }
 
   private handleError(error: Error): void {
@@ -111,32 +115,31 @@ export class AriWebSocketClient {
     console.log('[ARI WebSocket] Connection closed');
     this.ws = null;
 
-    if (this.shouldReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      console.log(`[ARI WebSocket] Reconnecting in ${this.reconnectDelay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
-      
-      this.reconnectInterval = setTimeout(() => {
-        this.connect();
-      }, this.reconnectDelay);
-    } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('[ARI WebSocket] Max reconnection attempts reached');
-    }
+    if (!this.shouldReconnect) return;
+
+    const delay = Math.min(this.reconnectDelay * 2 ** this.reconnectAttempts, this.maxReconnectDelay);
+    this.reconnectAttempts++;
+    console.log(`[ARI WebSocket] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})...`);
+
+    this.reconnectInterval = setTimeout(() => {
+      this.reconnectInterval = null;
+      // A failed attempt closes the socket again, which schedules the next
+      // one — the rejection itself is expected and must not go unhandled.
+      this.connect().catch(() => undefined);
+    }, delay);
   }
 
   connect(): Promise<void> {
     if (this.isConnecting || this.ws?.readyState === WebSocket.OPEN) {
       return Promise.resolve();
     }
+    this.shouldReconnect = true;
 
     return new Promise((resolve, reject) => {
-      if (this.isConnecting) {
-        return;
-      }
-
       this.isConnecting = true;
       const url = this.buildWebSocketUrl();
-console.log('url', url);
-      console.log(`[ARI WebSocket] Connecting to ${url.replace(/:[^:@]+@/, ':****@')}...`);
+      // never log the api_key (user:password)
+      console.log(`[ARI WebSocket] Connecting to ${url.replace(/api_key=[^&]*/, 'api_key=****')}...`);
 
       try {
         this.ws = new WebSocket(url);

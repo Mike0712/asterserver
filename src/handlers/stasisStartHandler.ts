@@ -31,7 +31,10 @@ export const registerStasisStartHandler = () => {
     const appArgs = parseArgs(stasisEvent.args || []);
 
     if (!appArgs['callType']) {
-      ariClient.deleteChannel(stasisEvent.channel?.id as string);
+      // May already be gone (caller hung up) — a 404 here is not an error.
+      await ariClient.deleteChannel(stasisEvent.channel?.id as string).catch((error) => {
+        console.warn('[ARI] Failed to hang up channel without callType:', stasisEvent.channel?.id, error);
+      });
       return;
     }
 

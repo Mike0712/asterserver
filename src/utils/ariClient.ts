@@ -18,6 +18,9 @@ const DEFAULT_PASSWORD = process.env.ARI_PASSWORD || 'asterisk';
 const createAuthHeader = (username: string, password: string): string =>
   `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
 
+/** One URL path segment — ids come from API callers and must not be able to address another ARI resource. */
+const seg = (value: string): string => encodeURIComponent(value);
+
 const ensureLeadingSlash = (path: string): string =>
   path.startsWith('/') ? path : `/${path}`;
 
@@ -107,7 +110,7 @@ export class AriClient {
     template?: string;
   }) {
     const { bridgeId, ...rest } = options;
-    const path = bridgeId ? `/bridges/${bridgeId}` : '/bridges';
+    const path = bridgeId ? `/bridges/${seg(bridgeId)}` : '/bridges';
 
     return this.request(path, {
       method: 'POST',
@@ -116,13 +119,13 @@ export class AriClient {
   }
 
   deleteBridge(bridgeId: string) {
-    return this.request(`/bridges/${bridgeId}`, {
+    return this.request(`/bridges/${seg(bridgeId)}`, {
       method: 'DELETE',
     });
   }
 
   getBridge(bridgeId: string) {
-    return this.request(`/bridges/${bridgeId}`);
+    return this.request(`/bridges/${seg(bridgeId)}`);
   }
 
   playMohToBridge(options: {
@@ -130,8 +133,9 @@ export class AriClient {
     moh: string;
   }) {
     const { bridgeId, moh } = options;
-    return this.request(`/bridges/${bridgeId}/moh?mohClass=${moh}`, {
+    return this.request(`/bridges/${seg(bridgeId)}/moh`, {
       method: 'POST',
+      query: { mohClass: moh },
     });
   }
 
@@ -145,7 +149,7 @@ export class AriClient {
     role?: 'participant' | 'agent' | 'chickensoup';
   }) {
     const { bridgeId, channel, role } = options;
-    return this.request(`/bridges/${bridgeId}/addChannel`, {
+    return this.request(`/bridges/${seg(bridgeId)}/addChannel`, {
       method: 'POST',
       query: {
         channel,
@@ -155,7 +159,7 @@ export class AriClient {
   }
 
   deleteChannel(channelId: string) {
-    return this.request(`/channels/${channelId}`, {
+    return this.request(`/channels/${seg(channelId)}`, {
       method: 'DELETE',
     });
   }
@@ -165,14 +169,14 @@ export class AriClient {
    * with ')' (e.g. `PJSIP_HEADER(read,X-Call-Token)`); ARI evaluates those.
    */
   getChannelVariable(channelId: string, variable: string) {
-    return this.request<{ value: string }>(`/channels/${encodeURIComponent(channelId)}/variable`, {
+    return this.request<{ value: string }>(`/channels/${seg(channelId)}/variable`, {
       query: { variable },
     });
   }
 
   removeChannelFromBridge(options: { bridgeId: string; channel: string }) {
     const { bridgeId, channel } = options;
-    return this.request(`/bridges/${bridgeId}/removeChannel`, {
+    return this.request(`/bridges/${seg(bridgeId)}/removeChannel`, {
       method: 'POST',
       query: {
         channel,
@@ -201,7 +205,7 @@ export class AriClient {
   }
 
   answerChannel(channelId: string) {
-    return this.request(`/channels/${channelId}/answer`, {
+    return this.request(`/channels/${seg(channelId)}/answer`, {
       method: 'POST',
     });
   }
@@ -212,12 +216,12 @@ export class AriClient {
       resource: string;
       state: 'online' | 'offline' | 'unknown';
       channel_ids: string[];
-    }>(`/endpoints/${tech}/${resource}`);
+    }>(`/endpoints/${seg(tech)}/${seg(resource)}`);
   }
 
   playMedia(channelId: string, media: string) {
     return this.request<{ id: string; media_uri: string; state: string }>(
-      `/channels/${channelId}/play`,
+      `/channels/${seg(channelId)}/play`,
       {
         method: 'POST',
         query: { media },
@@ -226,7 +230,7 @@ export class AriClient {
   }
 
   stopPlayback(playbackId: string) {
-    return this.request(`/playbacks/${playbackId}`, {
+    return this.request(`/playbacks/${seg(playbackId)}`, {
       method: 'DELETE',
     });
   }

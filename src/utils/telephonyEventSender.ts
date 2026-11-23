@@ -32,6 +32,9 @@ interface ChannelEnteredBridgeEvent {
 }
 
 const TELEPHONY_EVENTS_URL = process.env.TELEPHONY_EVENTS_URL as string;
+// A hung tgsip must not stall callers forever (outgoingCallTracker awaits
+// each event of a call in order).
+const TELEPHONY_EVENTS_TIMEOUT_MS = Number(process.env.TELEPHONY_EVENTS_TIMEOUT_MS) || 5000;
 
 export const sendTelephonyEvent = async (payload: TelephonyEventPayload): Promise<void> => {
   try {
@@ -49,6 +52,7 @@ export const sendTelephonyEvent = async (payload: TelephonyEventPayload): Promis
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(finalPayload),
+      signal: AbortSignal.timeout(TELEPHONY_EVENTS_TIMEOUT_MS),
     });
 
     if (!response.ok) {
