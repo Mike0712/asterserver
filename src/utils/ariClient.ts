@@ -160,6 +160,16 @@ export class AriClient {
     });
   }
 
+  /**
+   * Reads a channel variable — or a dialplan function, when the name ends
+   * with ')' (e.g. `PJSIP_HEADER(read,X-Call-Token)`); ARI evaluates those.
+   */
+  getChannelVariable(channelId: string, variable: string) {
+    return this.request<{ value: string }>(`/channels/${encodeURIComponent(channelId)}/variable`, {
+      query: { variable },
+    });
+  }
+
   removeChannelFromBridge(options: { bridgeId: string; channel: string }) {
     const { bridgeId, channel } = options;
     return this.request(`/bridges/${bridgeId}/removeChannel`, {
